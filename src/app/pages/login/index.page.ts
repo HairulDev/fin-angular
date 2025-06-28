@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import axios from 'axios';
 import { Router, RouterLink } from '@angular/router';
+import { environment } from '../../../environments/env';
 
 @Component({
   selector: 'app-login',
@@ -36,7 +37,7 @@ export default class LoginComponent {
     const { username, password } = this.loginForm.value;
 
     try {
-      const response = await axios.post('/api/account/login', {
+      const response = await axios.post(`${environment.apiUrl}/api/account/login`, {
         username,
         password
       });
