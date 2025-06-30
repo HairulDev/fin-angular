@@ -1,16 +1,33 @@
+<!-- index.page.html -->
 <div class="bg-gray-900 min-h-screen p-6">
     <div class="bg-gray-800 rounded-lg border border-gray-700">
         <div class="px-6 py-3 border-b border-gray-700">
             <h2 class="text-left text-xl font-semibold text-white">Your Portfolio</h2>
         </div>
-        <div *ngIf="portfolioState.loading" class="text-gray-400">Loading portfolio...</div>
-        <div *ngIf="portfolioState.error" class="text-red-500">{{ portfolioState.error }}</div>
+
+        <div *ngIf="portfolioStore.portfolio().loading" class="text-gray-400">Loading portfolio...</div>
+        <div *ngIf="portfolioStore.portfolio().error" class="text-red-500">{{ portfolioStore.portfolio().error }}</div>
 
         <div class="px-6 py-6">
+            <app-portfolio-section
+                [showSearchSection]="showSearchSection"
+                [searchQuery]="searchQuery"
+                [searchResults]="searchResults"
+                [searchLoading]="searchLoading"
+                [searchError]="searchError"
+                [showSuggestions]="showSuggestions"
+                (showSearchSectionChange)="toggleSearchSection($event)"
+                (updateSearchQuery)="updateSearchQuery($event)"
+                (search)="handleSearch()"
+                (clear)="clearSearch()"
+                (select)="handleSelect($event)"
+            ></app-portfolio-section>
+
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
-                *ngIf="!portfolioState.loading && portfolioState.items.length">
+                *ngIf="!portfolioStore.portfolio().loading && portfolioStore.portfolio().items.length">
                 <div class="bg-gray-800 border border-gray-700 rounded-xl p-5"
-                    *ngFor="let item of portfolioState.items; let i = index">
+                    *ngFor="let item of portfolioStore.portfolio().items; let i = index">
+
                     <!-- Stock Header -->
                     <div class="flex justify-between items-start mb-4">
                         <div>
@@ -19,6 +36,7 @@
                         </div>
                         <div>
                             <button
+                                (click)="deletePortfolio(item.symbol)"
                                 class="text-gray-400 hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-600"
                                 title="Remove from portfolio">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -28,6 +46,7 @@
                             </button>
                         </div>
                     </div>
+
                     <div class="text-white text-2xl font-bold mb-5">
                         {{ item.price | currency: 'USD': 'symbol':'1.2-2' }}
                     </div>
@@ -37,10 +56,30 @@
                     </div>
 
                     <div class="flex justify-between items-center text-sm text-gray-400">
-                        <span>Dividend History {{ portfolioState.dividends[item.symbol]?.length || 0 }} records</span>
-                        <button class="hover:text-gray-300">Notes</button>
+                        <span>Dividend History {{ portfolioStore.portfolio().dividends[item.symbol]?.length || 0 }}
+                            records</span>
+                        <button class="hover:text-gray-300" (click)="openNotesModal(item)">Notes</button>
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal -->
+    <div *ngIf="isNotesModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 w-full max-w-lg shadow-lg relative">
+            <h3 class="text-xl font-semibold text-white mb-4">
+                Notes for {{ selectedNoteItem?.symbol }}
+            </h3>
+            <ul class="text-gray-300 list-disc list-inside space-y-1 mb-6">
+                <li *ngFor="let comment of selectedNoteItem?.comments">{{ comment }}</li>
+                <li *ngIf="!selectedNoteItem?.comments?.length" class="italic text-gray-500">No notes available</li>
+            </ul>
+            <div class="flex justify-end">
+                <button (click)="closeNotesModal()"
+                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+                    Close
+                </button>
             </div>
         </div>
     </div>

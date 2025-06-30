@@ -1,9 +1,18 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, computed, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
-import axios from 'axios';
 import { getCachedOrFetch } from '../../../utils/cacheUtils';
 import { environment } from '../../../environments/env';
+import { getFromLocalStorage } from '../../../utils/storageUtils';
+import ModalSearchPortfolioComponent from '../../components/modal-search-portfolio/index.page';
+import PortfolioSectionComponent from '../../components/portfolio-section/index.page';
+import SummarySectionComponent from '../../components/summary-section/index.page';
+import PortfolioService from '../../services/portfolio/index.page';
+import StockService from '../../services/stock/index.page';
+import PortfolioStoreService from '../../stores/portfolio/index.page';
+
+
+const STORAGE_KEY = "totalPortfolios";
 
 interface PortfolioItem {
   id: number;
@@ -13,7 +22,7 @@ interface PortfolioItem {
   lastDiv: number;
   industry: string;
   marketCap: number;
-  comments: any[];
+  comments: string[];
   portfolios: any[];
   price?: number;
 }
@@ -21,101 +30,160 @@ interface PortfolioItem {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [
+    CommonModule,
+    ModalSearchPortfolioComponent,
+    PortfolioSectionComponent,
+    SummarySectionComponent
+  ],
   templateUrl: './index.page.html',
 })
 export default class DashboardComponent implements OnInit {
-  portfolioState = {
-    loading: false,
-    error: '',
-    items: [] as PortfolioItem[],
-    dividends: {} as Record<string, any[]>,
-  };
+  token = localStorage.getItem('token');
+  totalValueOld = signal(getFromLocalStorage(STORAGE_KEY) || 0);
+
+
+  constructor(
+    public portfolioStore: PortfolioStoreService,
+    private portfolioService: PortfolioService,
+    private stockService: StockService,
+  ) {}
+
+  totalGain = computed(() => {
+    const totalValue = this.portfolioStore.totalValue();
+    const oldValue = this.totalValueOld();
+    return oldValue === 0 ? 0 : Math.ceil(totalValue - oldValue);
+  });
+
+  isNotesModalOpen = false;
+  selectedNoteItem?: PortfolioItem;
+
+  // Search-related state
+  showSearchSection = false;
+  searchQuery = '';
+  searchResults: any[] = [];
+  searchLoading = false;
+  searchError = '';
+  showSuggestions = false;
 
   ngOnInit(): void {
     Chart.register(...registerables);
-    const token :any= localStorage.getItem('token');
-
-    this.loadPortfolio(this.portfolioState, token).then(() => {
+    this.loadPortfolio().then(() => {
       setTimeout(() => this.createCharts(), 100);
     });
   }
 
-  async loadPortfolio(state: any, token: string) {
-    
-    state.loading = true;
+  openNotesModal(item: PortfolioItem) {
+    this.selectedNoteItem = item;
+    this.isNotesModalOpen = true;
+  }
+
+  closeNotesModal() {
+    this.isNotesModalOpen = false;
+    this.selectedNoteItem = undefined;
+  }
+
+  // --- Search and Add Portfolio Methods ---
+
+  toggleSearchSection(show: boolean) {
+    this.showSearchSection = show;
+    if (!show) {
+      this.clearSearch();
+    }
+  }
+
+  updateSearchQuery(query: string) {
+    this.searchQuery = query;
+    if (query) {
+      this.handleSearch();
+    } else {
+      this.searchResults = [];
+      this.showSuggestions = false;
+    }
+  }
+
+  async handleSearch() {
+    if (!this.searchQuery) return;
+    this.searchLoading = true;
+    this.searchError = '';
     try {
-      const response = await axios.get(`${environment.apiUrl}/api/portfolio`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      state.items = response.data;
-
-      await Promise.all(
-        state.items.map(async (item: PortfolioItem) => {
-          const symbol = item.symbol;
-
-          try {
-            const sortedData = await getCachedOrFetch(
-              'dividendCache',
-              symbol,
-              async () => {
-                const res = await axios.get(
-                  `${environment.apiFmp}/api/v3/historical-price-full/stock_dividend/${encodeURIComponent(
-                    symbol
-                  )}?apikey=${environment.apiKey}`
-                );
-                return (
-                  res.data.historical?.slice(0, 18)?.sort(
-                    (a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()
-                  ) || []
-                );
-              },
-              5 * 60 * 60 * 1000
-            );
-            state.dividends[symbol] = sortedData;
-          } catch {
-            state.dividends[symbol] = [];
-          }
-
-          try {
-            const profile = await getCachedOrFetch(
-              'companyProfileCache',
-              symbol,
-              async () => {
-                const res = await axios.get(
-                  `${environment.apiFmp}/api/v3/profile/${encodeURIComponent(
-                    symbol
-                  )}?apikey=${environment.apiKey}`
-                );
-                return res.data?.[0] || {};
-              },
-              5 * 60 * 60 * 1000
-            );
-            item.price = profile.price || item.purchase;
-          } catch {
-            item.price = item.purchase;
-          }
-        })
-      );
+      this.searchResults = await this.portfolioService.searchStocks(this.searchQuery);
+      this.showSuggestions = true;
     } catch (err: any) {
-      state.error = err.response?.data?.message || 'Failed to load portfolio';
+      this.searchError = err.message;
     } finally {
-      state.loading = false;
+      this.searchLoading = false;
+    }
+  }
+
+  async handleSelect(item: any) {
+    this.searchLoading = true;
+    try {
+      await this.portfolioService.addToPortfolio(this.token!, item.symbol);
+      alert(`${item.symbol} added successfully!`);
+      await this.loadPortfolio(); // Refresh portfolio
+      this.toggleSearchSection(false); // Close search section
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      this.searchLoading = false;
+    }
+  }
+
+  clearSearch() {
+    this.searchQuery = '';
+    this.searchResults = [];
+    this.searchError = '';
+    this.showSuggestions = false;
+  }
+
+  // --- End Search and Add ---
+
+  async loadPortfolio() {
+    this.portfolioStore.portfolio.update(state => ({ ...state, loading: true, error: '' }));
+
+    try {
+      const { items, dividends } = await this.portfolioService.loadPortfolio(this.token!);
+      this.portfolioStore.portfolio.set({ items, dividends, error: '', loading: false });
+
+      // Create charts after data is successfully loaded
+      setTimeout(() => this.createCharts(), 100);
+
+    } catch (err: any) {
+      this.portfolioStore.portfolio.update(state => ({ ...state, error: err.message, loading: false }));
+    }
+  }
+  
+  
+  async deletePortfolio(symbol: string) {
+    if (!confirm('Are you sure you want to delete this portfolio?')) return;
+
+    this.portfolioStore.portfolio.update(state => ({ ...state, loading: true }));
+
+    try {
+      await this.portfolioService.deletePortfolio(this.token!, symbol);
+      // Reload the portfolio list after deletion
+      await this.loadPortfolio();
+    } catch (err: any) {
+      this.portfolioStore.portfolio.update(state => ({ ...state, error: err.message, loading: false }));
+      alert(err.message);
     }
   }
 
   createCharts() {
-    this.portfolioState.items.forEach((item, index) => {
+    const items = this.portfolioStore.portfolio().items;
+    const dividendsMap = this.portfolioStore.portfolio().dividends;
+
+    items.forEach((item:any, index:number) => {
       const canvas = document.getElementById(`chart-${index}`) as HTMLCanvasElement;
       if (canvas) {
         const ctx = canvas.getContext('2d');
         if (ctx) {
-          const dividends = this.portfolioState.dividends[item.symbol] || [];
+          const dividends = dividendsMap[item.symbol] || [];
           new Chart(ctx, {
             type: 'line',
             data: {
-              labels: dividends.map(item => {
+              labels: dividends.map((item:any) => {
                 const dateObj = new Date(item.date);
                 const day = dateObj.getDate();
                 const month = dateObj.toLocaleDateString('en-US', { month: 'short' });
@@ -124,9 +192,9 @@ export default class DashboardComponent implements OnInit {
               }),
               datasets: [
                 {
-                  data: dividends.map((d) => d.dividend),
+                  data: dividends.map((d:any) => d.dividend),
                   borderColor: '#10b981',
-                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                  backgroundColor: 'rgba(241, 21, 21, 0.1)',
                   borderWidth: 2,
                   fill: true,
                   tension: 0.1,
@@ -154,7 +222,12 @@ export default class DashboardComponent implements OnInit {
                   ticks: {
                     color: '#9ca3af',
                     font: { size: 10 },
-                    callback: (value) => `$${Number(value).toFixed(2)}`,
+                    callback: (tickValue: string | number) => {
+                      if (typeof tickValue === 'number') {
+                        return `$${tickValue.toFixed(2)}`;
+                      }
+                      return tickValue;
+                    },
                   },
                 },
               },
