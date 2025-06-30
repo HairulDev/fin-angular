@@ -1,26 +1,35 @@
-# fin-angular
+# Project Documentation
 
-This project was generated with [Analog](https://analogjs.org), the fullstack meta-framework for Angular.
+This repository contains documentation and references for both the **backend** (.NET Core 8) and **backend** (Rust Axum for upload/download file) and **frontend** (Vue.js or React.js or Angular.js)
 
-## Setup
+---
 
-Run `npm install` to install the application dependencies.
+## Related Projects
 
-## Development
+- **.NET Core 8 (Backend)**: [fin-netcore](https://github.com/HairulDev/fin-netcore)
+- **Vue.js (Frontend)**: [fin-vuejs](https://github.com/HairulDev/fin-vuejs)
+- **Rust (Axum) Version**: [fin-rustaxum](https://github.com/HairulDev/fin-rustaxum)
+- **React (TypeScript) Version**: [fin-reactts](https://github.com/HairulDev/fin-reactts)
+- **Angular (TypeScript) Version**: [fin-angular](https://github.com/HairulDev/fin-angular)
 
-Run `npm start` for a dev server. Navigate to `http://localhost:5173/`. The application automatically reloads if you change any of the source files.
+---
 
-## Build
+## Prerequisites
+- Ensure you have Node.js and npm installed on your system.
 
-Run `npm run build` to build the client/server project. The client build artifacts are located in the `dist/analog/public` directory. The server for the API build artifacts are located in the `dist/analog/server` directory.
+## Installation
+1. Clone the repository to your local machine.
+2. Navigate to the project directory.
+3. Create a `.env` file in the project root directory and add the necessary environment variables:
 
-## Test
+```env
+VITE_API_URL=your_api_net_core_url_here
+VITE_API_RUST_URL=your_api_rust_url_here
+VITE_API_FMP=https://financialmodelingprep.com
+VITE_API_KEY=your_api_key (go to https://financialmodelingprep.com)
+```
 
-Run `npm run test` to run unit tests with [Vitest](https://vitest.dev).
+4. Run `npm install` to install the project dependencies.
 
-## Community
-
-- Visit and Star the [GitHub Repo](https://github.com/analogjs/analog)
-- Join the [Discord](https://chat.analogjs.org)
-- Follow us on [Twitter](https://twitter.com/analogjs)
-- Become a [Sponsor](https://github.com/sponsors/brandonroberts)
+## Running the Project
+- Use `npm run dev` to start the development server.
