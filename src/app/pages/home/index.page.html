@@ -9,19 +9,7 @@
         <div *ngIf="portfolioStore.portfolio().error" class="text-red-500">{{ portfolioStore.portfolio().error }}</div>
 
         <div class="px-6 py-6">
-            <app-portfolio-section
-                [showSearchSection]="showSearchSection"
-                [searchQuery]="searchQuery"
-                [searchResults]="searchResults"
-                [searchLoading]="searchLoading"
-                [searchError]="searchError"
-                [showSuggestions]="showSuggestions"
-                (showSearchSectionChange)="toggleSearchSection($event)"
-                (updateSearchQuery)="updateSearchQuery($event)"
-                (search)="handleSearch()"
-                (clear)="clearSearch()"
-                (select)="handleSelect($event)"
-            ></app-portfolio-section>
+            <app-portfolio-section></app-portfolio-section>
 
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6"
                 *ngIf="!portfolioStore.portfolio().loading && portfolioStore.portfolio().items.length">

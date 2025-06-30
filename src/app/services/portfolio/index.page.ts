@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { catchError, lastValueFrom, of } from 'rxjs';
+import { HttpClient } from '@angular/common/http';
+import { lastValueFrom } from 'rxjs';
 import { environment } from '../../../environments/env';
 import { getCachedOrFetch } from '../../../utils/cacheUtils';
 
@@ -22,8 +22,7 @@ export default class PortfolioService {
         query,
         async () => {
           const url = `${this.fmpApi}/search?query=${query}&limit=100&apikey=${environment.apiKey}`;
-          const res = await lastValueFrom(this.http.get<any[]>(url));
-          return res;
+          return await lastValueFrom(this.http.get<any[]>(url));
         },
         5 * 60 * 60 * 1000
       );
@@ -33,12 +32,11 @@ export default class PortfolioService {
     }
   }
 
-  async loadPortfolio(token: string): Promise<{ items: any[], dividends: Record<string, any[]> }> {
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
-    const url = `${this.portfolioApi}`;
+  async loadPortfolio(): Promise<{ items: any[], dividends: Record<string, any[]> }> {
+    const url = this.portfolioApi;
 
     try {
-      const items = await lastValueFrom(this.http.get<any[]>(url, { headers }));
+      const items = await lastValueFrom(this.http.get<any[]>(url));
       const dividends: Record<string, any[]> = {};
 
       await Promise.all(
@@ -75,33 +73,28 @@ export default class PortfolioService {
     }
   }
 
-  async addToPortfolio(token: string, symbol: string): Promise<void> {
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  async addToPortfolio(symbol: string): Promise<void> {
     const url = `${this.portfolioApi}/?symbol=${encodeURIComponent(symbol)}`;
-
     try {
-      await lastValueFrom(this.http.post(url, {}, { headers }));
+      await lastValueFrom(this.http.post(url, {}));
     } catch (err: any) {
       throw new Error(err?.error?.message || 'Failed to add to portfolio');
     }
   }
 
-  async deletePortfolio(token: string, symbol: string): Promise<void> {
-    const headers = new HttpHeaders().set('Authorization', `Bearer ${token}`);
+  async deletePortfolio(symbol: string): Promise<void> {
     const url = `${this.portfolioApi}/?symbol=${encodeURIComponent(symbol)}`;
-
     try {
-      await lastValueFrom(this.http.delete(url, { headers }));
+      await lastValueFrom(this.http.delete(url));
     } catch (err: any) {
       throw new Error(err?.error?.message || 'Failed to delete portfolio');
     }
   }
 
   async getDividends(symbol: string): Promise<any[]> {
+    const url = `https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${encodeURIComponent(symbol)}?apikey=${environment.apiKey}`;
     try {
-      const res = await lastValueFrom(this.http.get<any>(
-        `https://financialmodelingprep.com/api/v3/historical-price-full/stock_dividend/${encodeURIComponent(symbol)}?apikey=${environment.apiKey}`
-      ));
+      const res = await lastValueFrom(this.http.get<any>(url));
       return res?.historical
         ?.slice(0, 18)
         ?.sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()) || [];
@@ -112,17 +105,13 @@ export default class PortfolioService {
   }
   
   async getProfile(symbol: string): Promise<any> {
+    const url = `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${environment.apiKey}`;
     try {
-      const res = await lastValueFrom(this.http.get<any[]>(
-        `https://financialmodelingprep.com/api/v3/profile/${encodeURIComponent(symbol)}?apikey=${environment.apiKey}`
-      ));
+      const res = await lastValueFrom(this.http.get<any[]>(url));
       return res?.[0] || {};
     } catch (err) {
       console.error(`Failed to get profile for ${symbol}`, err);
       return {};
     }
   }
-  
-
-  
 }

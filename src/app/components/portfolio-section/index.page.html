@@ -1,0 +1,12 @@
+<div class="mb-4">
+    <button (click)="toggleSearchSection()"
+        class="px-3 py-1 mb-2 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 flex items-center gap-2">
+        <span>＋</span> Portfolio
+    </button>
+
+    <app-modal-search-portfolio *ngIf="portfolioStore.ui().showSearchSection" [query]="portfolioStore.search().query"
+        [results]="portfolioStore.search().results" [loading]="portfolioStore.search().loading"
+        [error]="portfolioStore.search().error" [showSuggestions]="portfolioStore.search().showSuggestions"
+        (updateQuery)="updateSearchQuery($event)" (search)="onSearch()" (clear)="onClear()" (select)="onSelect($event)"
+        (close)="toggleSearchSection()" />
+</div>

@@ -1,5 +1,6 @@
 import { Injectable, computed, signal } from '@angular/core';
 import { FormBuilder, Validators, FormGroup } from '@angular/forms';
+import PortfolioService from '../../services/portfolio/index.page';
 
 @Injectable({
   providedIn: 'root'
@@ -70,7 +71,10 @@ export default class PortfolioStoreService {
 
   stockForm: FormGroup;
 
-  constructor(private fb: FormBuilder) {
+  constructor(
+    private fb: FormBuilder,
+    private portfolioService: PortfolioService
+  ) {
     this.stockForm = this.fb.group({
       symbol: ['', Validators.required],
       companyName: ['', Validators.required],
@@ -87,6 +91,67 @@ export default class PortfolioStoreService {
       return sum + price;
     }, 0);
   });
+
+  // --- Portfolio Methods ---
+  async loadPortfolio() {
+    this.portfolio.update(state => ({ ...state, loading: true, error: '' }));
+    try {
+      const { items, dividends } = await this.portfolioService.loadPortfolio();
+      this.portfolio.set({ items, dividends, error: '', loading: false });
+    } catch (err: any) {
+      this.portfolio.update(state => ({ ...state, error: err.message, loading: false }));
+    }
+  }
+
+  // --- Search Methods ---
+  updateSearchQuery(query: string) {
+    this.search.update(state => ({ ...state, query }));
+    if (query) {
+      this.handleSearch();
+    } else {
+      this.search.update(state => ({ ...state, results: [], showSuggestions: false }));
+    }
+  }
+
+  async handleSearch() {
+    const query = this.search().query;
+    if (!query) return;
+
+    this.search.update(state => ({ ...state, loading: true, error: '' }));
+    try {
+      const results = await this.portfolioService.searchStocks(query);
+      this.search.update(state => ({ ...state, results, showSuggestions: true, loading: false }));
+    } catch (err: any) {
+      this.search.update(state => ({ ...state, error: err.message, loading: false }));
+    }
+  }
+
+  clearSearch() {
+    this.search.set({
+      query: '',
+      results: [],
+      loading: false,
+      error: '',
+      showSuggestions: false
+    });
+  }
+
+  async handleSelect(item: any) {
+    this.search.update(state => ({ ...state, loading: true }));
+    try {
+      await this.portfolioService.addToPortfolio(item.symbol);
+      alert(`${item.symbol} added successfully!`);
+      this.ui.update(state => ({ ...state, showSearchSection: false }));
+      this.clearSearch();
+      await this.loadPortfolio();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      this.search.update(state => ({ ...state, loading: false }));
+    }
+  }
+  // --- End Search Methods ---
+
 
   resetStockForm() {
     this.stockForm.reset({

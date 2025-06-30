@@ -1,16 +1,12 @@
-import { Component, OnInit, computed, signal } from '@angular/core';
+import { Component, OnInit, computed, signal, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Chart, registerables } from 'chart.js';
-import { getCachedOrFetch } from '../../../utils/cacheUtils';
-import { environment } from '../../../environments/env';
 import { getFromLocalStorage } from '../../../utils/storageUtils';
 import ModalSearchPortfolioComponent from '../../components/modal-search-portfolio/index.page';
 import PortfolioSectionComponent from '../../components/portfolio-section/index.page';
 import SummarySectionComponent from '../../components/summary-section/index.page';
 import PortfolioService from '../../services/portfolio/index.page';
-import StockService from '../../services/stock/index.page';
 import PortfolioStoreService from '../../stores/portfolio/index.page';
-
 
 const STORAGE_KEY = "totalPortfolios";
 
@@ -39,15 +35,19 @@ interface PortfolioItem {
   templateUrl: './index.page.html',
 })
 export default class DashboardComponent implements OnInit {
-  token = localStorage.getItem('token');
   totalValueOld = signal(getFromLocalStorage(STORAGE_KEY) || 0);
-
 
   constructor(
     public portfolioStore: PortfolioStoreService,
-    private portfolioService: PortfolioService,
-    private stockService: StockService,
-  ) {}
+    private portfolioService: PortfolioService
+  ) {
+    effect(() => {
+      const items = this.portfolioStore.portfolio().items;
+      if (items.length > 0) {
+        setTimeout(() => this.createCharts(), 100);
+      }
+    });
+  }
 
   totalGain = computed(() => {
     const totalValue = this.portfolioStore.totalValue();
@@ -58,19 +58,9 @@ export default class DashboardComponent implements OnInit {
   isNotesModalOpen = false;
   selectedNoteItem?: PortfolioItem;
 
-  // Search-related state
-  showSearchSection = false;
-  searchQuery = '';
-  searchResults: any[] = [];
-  searchLoading = false;
-  searchError = '';
-  showSuggestions = false;
-
   ngOnInit(): void {
     Chart.register(...registerables);
-    this.loadPortfolio().then(() => {
-      setTimeout(() => this.createCharts(), 100);
-    });
+    this.portfolioStore.loadPortfolio();
   }
 
   openNotesModal(item: PortfolioItem) {
@@ -83,87 +73,14 @@ export default class DashboardComponent implements OnInit {
     this.selectedNoteItem = undefined;
   }
 
-  // --- Search and Add Portfolio Methods ---
-
-  toggleSearchSection(show: boolean) {
-    this.showSearchSection = show;
-    if (!show) {
-      this.clearSearch();
-    }
-  }
-
-  updateSearchQuery(query: string) {
-    this.searchQuery = query;
-    if (query) {
-      this.handleSearch();
-    } else {
-      this.searchResults = [];
-      this.showSuggestions = false;
-    }
-  }
-
-  async handleSearch() {
-    if (!this.searchQuery) return;
-    this.searchLoading = true;
-    this.searchError = '';
-    try {
-      this.searchResults = await this.portfolioService.searchStocks(this.searchQuery);
-      this.showSuggestions = true;
-    } catch (err: any) {
-      this.searchError = err.message;
-    } finally {
-      this.searchLoading = false;
-    }
-  }
-
-  async handleSelect(item: any) {
-    this.searchLoading = true;
-    try {
-      await this.portfolioService.addToPortfolio(this.token!, item.symbol);
-      alert(`${item.symbol} added successfully!`);
-      await this.loadPortfolio(); // Refresh portfolio
-      this.toggleSearchSection(false); // Close search section
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      this.searchLoading = false;
-    }
-  }
-
-  clearSearch() {
-    this.searchQuery = '';
-    this.searchResults = [];
-    this.searchError = '';
-    this.showSuggestions = false;
-  }
-
-  // --- End Search and Add ---
-
-  async loadPortfolio() {
-    this.portfolioStore.portfolio.update(state => ({ ...state, loading: true, error: '' }));
-
-    try {
-      const { items, dividends } = await this.portfolioService.loadPortfolio(this.token!);
-      this.portfolioStore.portfolio.set({ items, dividends, error: '', loading: false });
-
-      // Create charts after data is successfully loaded
-      setTimeout(() => this.createCharts(), 100);
-
-    } catch (err: any) {
-      this.portfolioStore.portfolio.update(state => ({ ...state, error: err.message, loading: false }));
-    }
-  }
-  
-  
   async deletePortfolio(symbol: string) {
     if (!confirm('Are you sure you want to delete this portfolio?')) return;
 
     this.portfolioStore.portfolio.update(state => ({ ...state, loading: true }));
 
     try {
-      await this.portfolioService.deletePortfolio(this.token!, symbol);
-      // Reload the portfolio list after deletion
-      await this.loadPortfolio();
+      await this.portfolioService.deletePortfolio(symbol);
+      await this.portfolioStore.loadPortfolio();
     } catch (err: any) {
       this.portfolioStore.portfolio.update(state => ({ ...state, error: err.message, loading: false }));
       alert(err.message);
@@ -224,7 +141,7 @@ export default class DashboardComponent implements OnInit {
                     font: { size: 10 },
                     callback: (tickValue: string | number) => {
                       if (typeof tickValue === 'number') {
-                        return `$${tickValue.toFixed(2)}`;
+                        return `${tickValue.toFixed(2)}`;
                       }
                       return tickValue;
                     },
