@@ -15,7 +15,6 @@ export default class ModalSearchPortfolioComponent {
   @Input() showSuggestions = false;
 
   @Output() updateQuery = new EventEmitter<string>();
-  @Output() search = new EventEmitter<void>();
   @Output() clear = new EventEmitter<void>();
   @Output() select = new EventEmitter<any>();
   @Output() close = new EventEmitter<void>();

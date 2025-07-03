@@ -7,6 +7,8 @@ import PortfolioSectionComponent from '../../components/portfolio-section/index.
 import SummarySectionComponent from '../../components/summary-section/index.page';
 import PortfolioService from '../../services/portfolio/index.page';
 import PortfolioStoreService from '../../stores/portfolio/index.page';
+import { BalanceSheetStatement, CashFlowStatement, CompanyProfile, IncomeStatement, KeyMetricsTTM, SecFiling } from 'src/app/interfaces/portfolio.model';
+import { formatLargeMonetaryNumber, formatLargeNonMonetaryNumber, formatRatio } from '../../../utils/NumberFormatting';
 
 const STORAGE_KEY = "totalPortfolios";
 
@@ -35,6 +37,9 @@ interface PortfolioItem {
   templateUrl: './index.page.html',
 })
 export default class DashboardComponent implements OnInit {
+  formatLargeMonetaryNumber = formatLargeMonetaryNumber;
+  formatLargeNonMonetaryNumber = formatLargeNonMonetaryNumber;
+  formatRatio = formatRatio;
   totalValueOld = signal(getFromLocalStorage(STORAGE_KEY) || 0);
 
   constructor(
@@ -58,15 +63,46 @@ export default class DashboardComponent implements OnInit {
   isNotesModalOpen = false;
   selectedNoteItem?: PortfolioItem;
 
+  keyMetrics = signal<KeyMetricsTTM | null>(null);
+  companyProfile = signal<CompanyProfile | null>(null);
+  secFilings = signal<SecFiling[]>([]);
+  incomeStatements = signal<IncomeStatement[]>([]);
+  cashFlows = signal<CashFlowStatement[]>([]);
+  balanceSheet = signal<BalanceSheetStatement | null>(null);
+
+
+
   ngOnInit(): void {
     Chart.register(...registerables);
     this.portfolioStore.loadPortfolio();
   }
-
-  openNotesModal(item: PortfolioItem) {
+  
+  async openNotesModal(item: PortfolioItem) {
     this.selectedNoteItem = item;
     this.isNotesModalOpen = true;
+    const symbol = item.symbol;
+  
+    try {
+      const [metrics, profile, filings, incomeStatements, cashFlows, balance] = await Promise.all([
+        await this.portfolioService.getKeyMetricsTTM(symbol),
+        await this.portfolioService.getCompanyProfile(symbol),
+        await this.portfolioService.getSecFilings(symbol),
+        await this.portfolioService.getIncomeStatements(symbol),
+        await this.portfolioService.getCashFlowStatements(symbol),
+        await this.portfolioService.getBalanceSheetStatements(symbol),
+      ]);
+  
+      this.keyMetrics.set(metrics?.[0] ?? null);
+      this.companyProfile.set(profile?.[0] ?? null);
+      this.secFilings.set(filings ?? []);
+      this.incomeStatements.set(incomeStatements || []);
+      this.cashFlows.set(cashFlows || []);
+      this.balanceSheet.set(balance?.[0]) ?? null;
+    } catch (err) {
+      console.error('Error loading detail modal:', err);
+    }
   }
+  
 
   closeNotesModal() {
     this.isNotesModalOpen = false;

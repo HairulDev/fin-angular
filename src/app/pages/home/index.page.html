@@ -23,8 +23,7 @@
                             <p class="text-left text-gray-400 text-sm">{{ item.companyName }}</p>
                         </div>
                         <div>
-                            <button
-                                (click)="deletePortfolio(item.symbol)"
+                            <button (click)="deletePortfolio(item.symbol)"
                                 class="text-gray-400 hover:text-red-400 transition-colors p-1 rounded hover:bg-gray-600"
                                 title="Remove from portfolio">
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -44,9 +43,11 @@
                     </div>
 
                     <div class="flex justify-between items-center text-sm text-gray-400">
-                        <span>Dividend History {{ portfolioStore.portfolio().dividends[item.symbol]?.length || 0 }}
-                            records</span>
-                        <button class="hover:text-gray-300" (click)="openNotesModal(item)">Notes</button>
+                        <span>Dividend History {{ portfolioStore.portfolio().dividends[item.symbol]?.length || 0
+                            }}records</span>
+                        <button
+                            class="px-3 py-1 text-xs bg-gray-700 text-gray-300 rounded hover:bg-gray-600 flex items-center"
+                            (click)="openNotesModal(item)">Detail</button>
                     </div>
                 </div>
             </div>
@@ -54,21 +55,245 @@
     </div>
 
     <!-- Modal -->
-    <div *ngIf="isNotesModalOpen" class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-        <div class="bg-gray-800 border border-gray-700 rounded-xl p-6 w-full max-w-lg shadow-lg relative">
-            <h3 class="text-xl font-semibold text-white mb-4">
-                Notes for {{ selectedNoteItem?.symbol }}
-            </h3>
-            <ul class="text-gray-300 list-disc list-inside space-y-1 mb-6">
-                <li *ngFor="let comment of selectedNoteItem?.comments">{{ comment }}</li>
-                <li *ngIf="!selectedNoteItem?.comments?.length" class="italic text-gray-500">No notes available</li>
-            </ul>
-            <div class="flex justify-end">
+    <div *ngIf="isNotesModalOpen"
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 px-4">
+        <div class="bg-gray-800 border border-gray-700 rounded-xl w-full shadow-lg relative flex flex-col">
+            <div class="p-6 overflow-y-auto" style="max-height: calc(90vh - 60px);">
+                <h3 class="text-xl text-left font-semibold text-white mb-4">
+                    {{ selectedNoteItem?.symbol }}
+                </h3>
+
+                <!-- Company Profile -->
+                <div *ngIf="companyProfile() as profile" class="mb-4 text-left">
+                    <div class="flex items-center gap-4">
+                        <img [src]="profile.image" alt="Logo" class="w-12 h-12 rounded bg-white p-1" />
+                        <div>
+                            <div class="text-lg font-bold text-white">{{ profile.companyName }}</div>
+                            <div class="text-gray-400 text-sm">{{ profile.ceo }} - {{ profile.sector }}</div>
+                            <a [href]="profile.website" target="_blank"
+                                class="text-blue-400 text-sm underline">Website</a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics -->
+                <div *ngIf="keyMetrics() as metrics" class="mt-6 text-sm">
+                    <h4 class="text-white font-semibold mb-2 text-center mb-4">Metrics</h4>
+                    <div class="flex justify-center">
+                        <div class="grid grid-cols-5 gap-3 text-sm text-left text-gray-300 w-max">
+                            <div>PE Ratio: <span class="text-green-400">{{ metrics['peRatioTTM'] | number:'1.2-2'
+                                    }}</span></div>
+                            <div>PB Ratio: <span class="text-green-400">{{ metrics['pbRatioTTM'] | number:'1.2-2'
+                                    }}</span></div>
+                            <div>ROE: <span class="text-green-400">{{ metrics['roeTTM'] | percent:'1.1-2' }}</span>
+                            </div>
+                            <div>ROA: <span class="text-green-400">{{ metrics['roaTTM'] | percent:'1.1-2' }}</span>
+                            </div>
+                            <div>Debt / Equity: <span class="text-green-400">{{ metrics['debtToEquityTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Current Ratio: <span class="text-green-400">{{ metrics['currentRatioTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Operating Margin: <span class="text-green-400">{{ metrics['operatingProfitMarginTTM'] |
+                                    percent:'1.1-2' }}</span></div>
+                            <div>Net Profit Margin: <span class="text-green-400">{{ metrics['netProfitMarginTTM'] |
+                                    percent:'1.1-2' }}</span></div>
+                            <div>Gross Profit Margin: <span class="text-green-400">{{ metrics['grossProfitMarginTTM'] |
+                                    percent:'1.1-2' }}</span></div>
+                            <div>Dividend / Share: <span class="text-green-400">{{ metrics['dividendPerShareTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>FCF / Share: <span class="text-green-400">{{ metrics['freeCashFlowPerShareTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Book Value / Share: <span class="text-green-400">{{ metrics['bookValuePerShareTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Revenue / Share: <span class="text-green-400">{{ metrics['revenuePerShareTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>EPS (TTM): <span class="text-green-400">{{ metrics['epsTTM'] | number:'1.2-2' }}</span>
+                            </div>
+                            <div>EV / EBITDA: <span class="text-green-400">{{ metrics['evToEbitdaTTM'] | number:'1.2-2'
+                                    }}</span></div>
+                            <div>Price / Sales: <span class="text-green-400">{{ metrics['priceToSalesRatioTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Interest Coverage: <span class="text-green-400">{{ metrics['interestCoverageTTM'] |
+                                    number:'1.2-2' }}</span></div>
+                            <div>Payout Ratio: <span class="text-green-400">{{ metrics['payoutRatioTTM'] |
+                                    percent:'1.1-2' }}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Balance Sheet -->
+                <div *ngIf="balanceSheet()" class="mt-6 text-sm">
+                    <h4 class="text-white font-semibold mb-2 text-center mb-4">Balance Sheet (Latest FY)</h4>
+                    <div class="flex justify-center">
+                        <div class="grid grid-cols-4 gap-2 text-sm text-left text-gray-300 w-max">
+                            <!-- Assets -->
+                            <div>Total Assets: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.totalAssets) }}</span></div>
+                            <div>Cash & Equivalents: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.cashAndCashEquivalents) }}</span></div>
+                            <div>Short-Term Investments: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.shortTermInvestments) }}</span></div>
+                            <div>Net Receivables: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.netReceivables) }}</span></div>
+                            <div>Inventory: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.inventory) }}</span></div>
+                            <div>Other Current Assets: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.otherCurrentAssets) }}</span></div>
+                            <div>Property, Plant & Equipment (Net): <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.propertyPlantEquipmentNet) }}</span></div>
+                            <div>Goodwill: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.goodwill) }}</span></div>
+                            <div>Intangible Assets: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.intangibleAssets) }}</span></div>
+                            <div>Long-Term Investments: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.longTermInvestments) }}</span></div>
+                            <div>Other Non-Current Assets: <span class="text-green-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.otherNonCurrentAssets) }}</span></div>
+
+                            <!-- Liabilities -->
+                            <div>Total Liabilities: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.totalLiabilities) }}</span></div>
+                            <div>Short-Term Debt: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.shortTermDebt) }}</span></div>
+                            <div>Account Payables: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.accountPayables) }}</span></div>
+                            <div>Tax Payables: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.taxPayables) }}</span></div>
+                            <div>Deferred Revenue: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.deferredRevenue) }}</span></div>
+                            <div>Long-Term Debt: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.longTermDebt) }}</span></div>
+                            <div>Deferred Tax Liabilities: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.deferredTaxLiabilitiesNonCurrent)
+                                    }}</span>
+                            </div>
+                            <div>Capital Lease Obligations: <span class="text-red-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.capitalLeaseObligations) }}</span></div>
+
+                            <!-- Equity -->
+                            <div>Common Stock: <span class="text-blue-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.commonStock) }}</span></div>
+                            <div>Retained Earnings: <span class="text-blue-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.retainedEarnings) }}</span></div>
+                            <div>Equity (Total Stockholders'): <span class="text-blue-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.totalStockholdersEquity) }}</span></div>
+                            <div>Accum. Other Comprehensive Income: <span class="text-blue-400">{{
+                                    formatLargeMonetaryNumber(balanceSheet()!.accumulatedOtherComprehensiveIncomeLoss)
+                                    }}</span></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Income Statements -->
+                <h4 class="text-white font-semibold mt-6 mb-2">Income Statement (Latest 2 FY):</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border border-gray-700 text-gray-300 text-sm">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="p-2 text-left">Year</th>
+                                <th class="p-2 text-right">Revenue</th>
+                                <th class="p-2 text-right">Cost of Revenue</th>
+                                <th class="p-2 text-right">Gross Profit</th>
+                                <th class="p-2 text-right">Operating Expenses</th>
+                                <th class="p-2 text-right">Operating Income</th>
+                                <th class="p-2 text-right">EBITDA</th>
+                                <th class="p-2 text-right">Interest Expense</th>
+                                <th class="p-2 text-right">Income Before Tax</th>
+                                <th class="p-2 text-right">Tax Expense</th>
+                                <th class="p-2 text-right">Net Income</th>
+                                <th class="p-2 text-right">EPS</th>
+                                <th class="p-2 text-right">R&D Expense</th>
+                                <th class="p-2 text-right">Operating Margin</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let stmt of incomeStatements()">
+                                <td class="p-2 text-left">{{ stmt.calendarYear }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.revenue) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.costOfRevenue) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.grossProfit) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.operatingExpenses) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.operatingIncome) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.ebitda) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.interestExpense) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.incomeBeforeTax) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.incomeTaxExpense) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(stmt.netIncome) }}</td>
+                                <td class="p-2 text-right">{{ formatRatio(stmt.eps) }}</td>
+                                <td class="p-2 text-right">{{
+                                    formatLargeMonetaryNumber(stmt.researchAndDevelopmentExpenses) }}</td>
+                                <td class="p-2 text-right">{{ formatRatio(stmt.operatingIncomeRatio * 100) }}%</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+                <!-- Cash Flow Statement -->
+                <h4 class="text-white font-semibold mt-6 mb-2">Cash Flow Statement (Latest 2 FY):</h4>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full border border-gray-700 text-gray-300 text-sm">
+                        <thead class="bg-gray-700">
+                            <tr>
+                                <th class="p-2 text-left">Year</th>
+                                <th class="p-2 text-right">Operating Cash Flow</th>
+                                <th class="p-2 text-right">CapEx</th>
+                                <th class="p-2 text-right">Free Cash Flow</th>
+                                <th class="p-2 text-right">D&A</th>
+                                <th class="p-2 text-right">Net Borrowings</th>
+                                <th class="p-2 text-right">Stock Buyback</th>
+                                <th class="p-2 text-right">Stock Issuance</th>
+                                <th class="p-2 text-right">Dividends Paid</th>
+                                <th class="p-2 text-right">Net Change in Cash</th>
+                                <th class="p-2 text-right">Cash at End</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let cash of cashFlows()">
+                                <td class="p-2 text-left">{{ cash.calendarYear }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.operatingCashFlow ?? 0) }}
+                                </td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.capitalExpenditure ?? 0) }}
+                                </td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.freeCashFlow ?? 0) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.depreciationAndAmortization
+                                    ?? 0) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.netBorrowings ?? 0) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.commonStockRepurchased ??
+                                    0) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.commonStockIssued ?? 0) }}
+                                </td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.dividendsPaid ?? 0) }}</td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.netChangeInCash ?? 0) }}
+                                </td>
+                                <td class="p-2 text-right">{{ formatLargeMonetaryNumber(cash.cashAtEndOfPeriod ?? 0) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+
+                <div *ngIf="secFilings()?.length" class="text-sm mt-6">
+                    <h4 class="text-white font-semibold text-center mb-2">10-K Filings:</h4>
+                    <ul class="list-disc pl-4 text-blue-400 text-left">
+                        <li *ngFor="let filing of secFilings()">
+                            <a [href]="filing.finalLink" target="_blank">{{ filing.fillingDate | date }} - {{
+                                filing.type }}</a>
+                        </li>
+                    </ul>
+                </div>
+
+
+            </div>
+
+            <div class="px-6 py-2 border-t border-gray-700 flex justify-end">
                 <button (click)="closeNotesModal()"
-                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+                    class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-1 rounded-lg">
                     Close
                 </button>
             </div>
         </div>
     </div>
+
 </div>

@@ -10,10 +10,6 @@
                 <button *ngIf="query" (click)="clear.emit()"
                     class="absolute inset-y-0 right-3 text-gray-400 hover:text-gray-200">✕</button>
             </div>
-
-            <button (click)="search.emit()" [disabled]="loading"
-                class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium">Search</button>
-
             <div *ngIf="showSuggestions && results.length"
                 class="absolute z-20 top-full left-0 w-full bg-gray-700 border border-gray-600 rounded-lg shadow-xl max-h-60 overflow-y-auto mt-1">
                 <div *ngFor="let item of results" (click)="select.emit(item)"

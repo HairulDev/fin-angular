@@ -23,10 +23,6 @@ export default class PortfolioSectionComponent {
     this.portfolioStore.updateSearchQuery(query);
   }
 
-  onSearch() {
-    this.portfolioStore.handleSearch();
-  }
-
   onClear() {
     this.portfolioStore.clearSearch();
   }

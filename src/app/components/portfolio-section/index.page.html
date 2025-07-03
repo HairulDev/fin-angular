@@ -7,6 +7,6 @@
     <app-modal-search-portfolio *ngIf="portfolioStore.ui().showSearchSection" [query]="portfolioStore.search().query"
         [results]="portfolioStore.search().results" [loading]="portfolioStore.search().loading"
         [error]="portfolioStore.search().error" [showSuggestions]="portfolioStore.search().showSuggestions"
-        (updateQuery)="updateSearchQuery($event)" (search)="onSearch()" (clear)="onClear()" (select)="onSelect($event)"
+        (updateQuery)="updateSearchQuery($event)" (clear)="onClear()" (select)="onSelect($event)"
         (close)="toggleSearchSection()" />
 </div>
