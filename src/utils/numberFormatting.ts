@@ -1,4 +1,4 @@
-export const formatLargeMonetaryNumber = (number: number): string => {
+export function formatLargeMonetaryNumber (number: number): string {
   if (number < 0) {
     return "-" + formatLargeMonetaryNumber(-1 * number);
   }
@@ -17,7 +17,7 @@ export const formatLargeMonetaryNumber = (number: number): string => {
   return "$" + number.toString();
 };
 
-export const formatLargeNonMonetaryNumber = (number: number): string => {
+export function formatLargeNonMonetaryNumber (number: number): string {
   if (number < 0) {
     return "-" + formatLargeNonMonetaryNumber(-1 * number);
   }
@@ -36,6 +36,6 @@ export const formatLargeNonMonetaryNumber = (number: number): string => {
   return number.toString();
 };
 
-export const formatRatio = (ratio: number): string => {
+export function formatRatio (ratio: number): string {
   return (Math.round(ratio * 100) / 100).toFixed(2);
 };

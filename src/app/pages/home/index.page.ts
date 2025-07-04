@@ -8,8 +8,7 @@ import SummarySectionComponent from '../../components/summary-section/index.page
 import PortfolioService from '../../services/portfolio/index.page';
 import PortfolioStoreService from '../../stores/portfolio/index.page';
 import { BalanceSheetStatement, CashFlowStatement, CompanyProfile, IncomeStatement, KeyMetricsTTM, SecFiling } from 'src/app/interfaces/portfolio.model';
-import { formatLargeMonetaryNumber, formatLargeNonMonetaryNumber, formatRatio } from '../../../utils/NumberFormatting';
-
+import { formatLargeMonetaryNumber,formatLargeNonMonetaryNumber, formatRatio  } from '../../../utils/numberFormatting';
 const STORAGE_KEY = "totalPortfolios";
 
 interface PortfolioItem {
@@ -69,8 +68,9 @@ export default class DashboardComponent implements OnInit {
   incomeStatements = signal<IncomeStatement[]>([]);
   cashFlows = signal<CashFlowStatement[]>([]);
   balanceSheet = signal<BalanceSheetStatement | null>(null);
+  fullReport = signal<any | null>(null);
 
-
+  
 
   ngOnInit(): void {
     Chart.register(...registerables);
@@ -91,16 +91,55 @@ export default class DashboardComponent implements OnInit {
         await this.portfolioService.getCashFlowStatements(symbol),
         await this.portfolioService.getBalanceSheetStatements(symbol),
       ]);
-  
+
       this.keyMetrics.set(metrics?.[0] ?? null);
       this.companyProfile.set(profile?.[0] ?? null);
       this.secFilings.set(filings ?? []);
       this.incomeStatements.set(incomeStatements || []);
       this.cashFlows.set(cashFlows || []);
       this.balanceSheet.set(balance?.[0]) ?? null;
+
+      // Gabungkan semua ke satu objek JSON
+      this.fullReport.set({
+        symbol,
+        companyProfile: profile?.[0] ?? null,
+        keyMetrics: metrics?.[0] ?? null,
+        secFilings: filings ?? [],
+        incomeStatements: incomeStatements ?? [],
+        cashFlows: cashFlows ?? [],
+        balanceSheet: balance?.[0] ?? null,
+      });
     } catch (err) {
       console.error('Error loading detail modal:', err);
     }
+  }
+  copyFullReportToClipboard() {
+    const report = this.fullReport();
+    if (report) {
+      const jsonString = JSON.stringify(report, null, 2); // Pretty print
+      navigator.clipboard.writeText(jsonString).then(() => {
+        alert('Full report copied to clipboard!');
+      }).catch(err => {
+        console.error('Failed to copy: ', err);
+      });
+    }
+  }
+
+  downloadFullReportAsJSON() {
+    const report = this.fullReport();
+    if (!report) return;
+  
+    const jsonString = JSON.stringify(report, null, 2);
+    const blob = new Blob([jsonString], { type: 'application/json' });
+    const url = window.URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${report.symbol}_full_report.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
   }
   
 
