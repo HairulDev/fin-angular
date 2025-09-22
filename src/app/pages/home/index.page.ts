@@ -135,7 +135,7 @@ export default class DashboardComponent implements OnInit {
     
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${report.symbol}_full_report.json`;
+    a.download = `${report.symbol}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
